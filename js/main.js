@@ -58,7 +58,7 @@
         }
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(157, 180, 255, " + p.a * p.life + ")";
+        ctx.fillStyle = "rgba(61, 79, 156, " + (p.a * p.life * 0.55) + ")";
         ctx.fill();
       }
       if (particles.length < 50) spawn(2);

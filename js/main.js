@@ -1,11 +1,9 @@
 /**
- * 美化委員会 — main interactions
- * Dust particle system + scroll reveals
+ * 美化委員会 — dust particles + scroll reveal
  */
 (function () {
   "use strict";
 
-  /* ---------- Dust particle canvas ---------- */
   function initDust() {
     var canvas = document.getElementById("dust-canvas");
     if (!canvas) return;
@@ -25,11 +23,11 @@
         particles.push({
           x: Math.random() * W,
           y: Math.random() * H,
-          r: 0.6 + Math.random() * 1.8,
-          vx: (Math.random() - 0.5) * 0.35,
-          vy: -0.15 - Math.random() * 0.35,
-          a: 0.15 + Math.random() * 0.35,
-          life: 0.6 + Math.random() * 0.4
+          r: 0.5 + Math.random() * 1.6,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: -0.12 - Math.random() * 0.28,
+          a: 0.12 + Math.random() * 0.28,
+          life: 0.55 + Math.random() * 0.45
         });
       }
     }
@@ -39,13 +37,12 @@
       ctx.clearRect(0, 0, W, H);
       for (var i = particles.length - 1; i >= 0; i--) {
         var p = particles[i];
-        // gentle attraction / clean when near mouse
         var dx = mouse.x - p.x;
         var dy = mouse.y - p.y;
         var dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 90) {
-          p.vx += (dx / dist) * 0.04;
-          p.vy += (dy / dist) * 0.04;
+        if (dist < 90 && dist > 0.1) {
+          p.vx += (dx / dist) * 0.035;
+          p.vy += (dy / dist) * 0.035;
           p.a *= 0.97;
           p.life -= 0.008;
         }
@@ -61,16 +58,15 @@
         }
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(0, 122, 94, " + p.a * p.life + ")";
+        ctx.fillStyle = "rgba(157, 180, 255, " + p.a * p.life + ")";
         ctx.fill();
       }
-      // keep density
-      if (particles.length < 55) spawn(2);
+      if (particles.length < 50) spawn(2);
       requestAnimationFrame(tick);
     }
 
     resize();
-    spawn(70);
+    spawn(60);
     window.addEventListener("resize", resize);
     window.addEventListener("pointermove", function (e) {
       mouse.x = e.clientX;
@@ -83,7 +79,6 @@
     if (!reduced) requestAnimationFrame(tick);
   }
 
-  /* ---------- Scroll reveal ---------- */
   function initReveal() {
     var els = document.querySelectorAll(".reveal");
     if (!els.length) return;
@@ -109,17 +104,9 @@
     });
   }
 
-  /* ---------- Active page hint in title (optional) ---------- */
-  function setPageClass() {
-    var path = (location.pathname || "").split("/").pop() || "index.html";
-    document.body.classList.add("page-" + path.replace(".html", ""));
-  }
-
   function init() {
-    setPageClass();
     initDust();
     initReveal();
-    document.body.classList.add("page-enter");
   }
 
   if (document.readyState === "loading") {

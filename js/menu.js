@@ -1,26 +1,15 @@
 /**
  * 美化委員会 — Radial Menu + Hamburger FAB
- * Interaction model inspired by G5PORTAL (long-press / triple-tap radial + FAB hamburger)
+ * Viewport-fixed positioning (clientX/Y + position:fixed on body children)
  */
 (function () {
   "use strict";
 
-  function detectRoot() {
-    var path = location.pathname || "";
-    var file = path.split("/").pop() || "";
-    if (file && file !== "index.html" && file.indexOf(".html") > -1) {
-      return "";
-    }
-    return "";
-  }
-
-  var root = detectRoot();
-
   function buildMenuData() {
     return [
-      { label: "INDEX", icon: "⌂", url: root + "index.html" },
-      { label: "幹部", icon: "👥", url: root + "cadre.html" },
-      { label: "業務内容", icon: "🧹", url: root + "activities.html" }
+      { label: "INDEX", icon: "⌂", url: "index.html" },
+      { label: "幹部", icon: "👥", url: "cadre.html" },
+      { label: "業務内容", icon: "🧹", url: "activities.html" }
     ];
   }
 
@@ -119,6 +108,7 @@
     if (document.querySelector(".radial-menu-wrapper")) return;
     menuEl = document.createElement("div");
     menuEl.className = "radial-menu-wrapper";
+    menuEl.setAttribute("aria-hidden", "true");
     var canvas = document.createElement("canvas");
     canvas.className = "rm-canvas-layer";
     menuEl.appendChild(canvas);
@@ -143,14 +133,24 @@
     document.body.appendChild(menuEl);
   }
 
+  function viewportSize() {
+    var vv = window.visualViewport;
+    if (vv) {
+      return { w: vv.width, h: vv.height };
+    }
+    return { w: window.innerWidth, h: window.innerHeight };
+  }
+
   function openMenu(x, y) {
     if (!menuEl) return;
-    var margin = 180;
-    var cx = typeof x === "number" ? x : window.innerWidth / 2;
-    var cy = typeof y === "number" ? y : window.innerHeight / 2;
-    menuEl.style.left = Math.max(margin, Math.min(cx, window.innerWidth - margin)) + "px";
-    menuEl.style.top = Math.max(margin, Math.min(cy, window.innerHeight - margin)) + "px";
+    var vs = viewportSize();
+    var margin = 160;
+    var cx = typeof x === "number" ? x : vs.w / 2;
+    var cy = typeof y === "number" ? y : vs.h / 2;
+    menuEl.style.left = Math.max(margin, Math.min(cx, vs.w - margin)) + "px";
+    menuEl.style.top = Math.max(margin, Math.min(cy, vs.h - margin)) + "px";
     menuEl.classList.add("active");
+    menuEl.setAttribute("aria-hidden", "false");
     isOpen = true;
     menuStack = [];
     renderItems(buildMenuData());
@@ -159,6 +159,7 @@
   function closeMenu() {
     if (!menuEl) return;
     menuEl.classList.remove("active");
+    menuEl.setAttribute("aria-hidden", "true");
     isOpen = false;
     menuStack = [];
     var items = menuEl.querySelectorAll(".rm-item");
@@ -173,11 +174,12 @@
     var fab = document.createElement("button");
     fab.type = "button";
     fab.className = "menu-fab";
-    fab.setAttribute("aria-label", "メニュー");
+    fab.setAttribute("aria-label", "メニューを開く");
     fab.innerHTML = "☰";
     document.body.appendChild(fab);
     fab.addEventListener("click", function (e) {
       e.stopPropagation();
+      e.preventDefault();
       openHamburger();
     });
   }
@@ -195,7 +197,7 @@
     panel.innerHTML =
       '<div class="ham-header">' +
       '<div class="ham-title">美化委員会</div>' +
-      '<button type="button" class="ham-close" id="ham-close">✕</button>' +
+      '<button type="button" class="ham-close" id="ham-close" aria-label="閉じる">✕</button>' +
       '</div><div id="ham-list"></div>';
     document.body.appendChild(panel);
     document.getElementById("ham-close").onclick = closeHamburger;
@@ -208,53 +210,18 @@
     var list = document.getElementById("ham-list");
     list.innerHTML = "";
 
-    function addLink(parent, it) {
+    buildMenuData().forEach(function (entry) {
       var a = document.createElement("a");
-      a.href = it.url || "#";
-      a.textContent = (it.icon ? it.icon + " " : "") + it.label;
+      a.className = "ham-link";
+      a.href = entry.url || "#";
+      a.textContent = (entry.icon ? entry.icon + " " : "") + entry.label;
       a.addEventListener("click", function (e) {
         e.preventDefault();
-        navigateWithDelay(it.url);
+        navigateWithDelay(entry.url);
       });
-      parent.appendChild(a);
-    }
-
-    function addGroup(parent, entry, depth) {
-      var btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "ham-group-btn" + (depth > 0 ? " ham-group-nested" : "");
-      btn.textContent = (entry.icon ? entry.icon + " " : "") + entry.label;
-      var sub = document.createElement("div");
-      sub.className = "ham-sub" + (depth > 0 ? " ham-sub-nested" : "");
-      entry.items.forEach(function (it) {
-        if (it.items && it.items.length) {
-          addGroup(sub, it, depth + 1);
-        } else {
-          addLink(sub, it);
-        }
-      });
-      btn.onclick = function () {
-        sub.classList.toggle("open");
-      };
-      parent.appendChild(btn);
-      parent.appendChild(sub);
-    }
-
-    buildMenuData().forEach(function (entry) {
-      if (entry.items && entry.items.length) {
-        addGroup(list, entry, 0);
-      } else {
-        var a = document.createElement("a");
-        a.className = "ham-link";
-        a.href = entry.url || "#";
-        a.textContent = (entry.icon ? entry.icon + " " : "") + entry.label;
-        a.addEventListener("click", function (e) {
-          e.preventDefault();
-          navigateWithDelay(entry.url);
-        });
-        list.appendChild(a);
-      }
+      list.appendChild(a);
     });
+
     var ov = document.getElementById("ham-overlay");
     var panel = document.getElementById("ham-panel");
     if (ov) {
@@ -276,51 +243,59 @@
   }
 
   function initEvents() {
-    document.addEventListener("pointerdown", function (e) {
-      if (
-        e.target.closest &&
-        (e.target.closest(".menu-fab") ||
-          e.target.closest(".radial-menu-wrapper") ||
-          e.target.closest("#ham-panel") ||
-          e.target.closest("#ham-overlay"))
-      )
-        return;
-      if (isOpen && menuEl && !menuEl.contains(e.target)) {
-        closeMenu();
-        return;
-      }
-      startX = e.clientX;
-      startY = e.clientY;
-      tapCount++;
-      clearTimeout(tapTimer);
-      if (tapCount === 3) {
-        clearTimeout(timer);
-        timer = null;
-        tapCount = 0;
-        if (!pieDisabled) openMenu(startX, startY);
-        return;
-      }
-      tapTimer = setTimeout(function () {
-        tapCount = 0;
-      }, TRIPLE_TAP_DELAY_MS);
-      if (pieDisabled) return;
-      clearTimeout(timer);
-      timer = setTimeout(function () {
+    document.addEventListener(
+      "pointerdown",
+      function (e) {
+        if (
+          e.target.closest &&
+          (e.target.closest(".menu-fab") ||
+            e.target.closest(".radial-menu-wrapper") ||
+            e.target.closest("#ham-panel") ||
+            e.target.closest("#ham-overlay"))
+        )
+          return;
+        if (isOpen && menuEl && !menuEl.contains(e.target)) {
+          closeMenu();
+          return;
+        }
+        startX = e.clientX;
+        startY = e.clientY;
+        tapCount++;
+        clearTimeout(tapTimer);
+        if (tapCount === 3) {
+          clearTimeout(timer);
+          timer = null;
+          tapCount = 0;
+          if (!pieDisabled) openMenu(startX, startY);
+          return;
+        }
+        tapTimer = setTimeout(function () {
+          tapCount = 0;
+        }, TRIPLE_TAP_DELAY_MS);
         if (pieDisabled) return;
-        tapCount = 0;
-        openMenu(startX, startY);
-      }, LONG_PRESS_MS);
-    });
-
-    document.addEventListener("pointermove", function (e) {
-      if (!timer) return;
-      var dx = e.clientX - startX;
-      var dy = e.clientY - startY;
-      if (Math.sqrt(dx * dx + dy * dy) > MOVE_THRESHOLD) {
         clearTimeout(timer);
-        timer = null;
-      }
-    });
+        timer = setTimeout(function () {
+          if (pieDisabled) return;
+          tapCount = 0;
+          openMenu(startX, startY);
+        }, LONG_PRESS_MS);
+      },
+      { passive: true }
+    );
+
+    document.addEventListener(
+      "pointermove",
+      function (e) {
+        if (!timer) return;
+        var dx = e.clientX - startX;
+        var dy = e.clientY - startY;
+        if (Math.sqrt(dx * dx + dy * dy) > MOVE_THRESHOLD) {
+          clearTimeout(timer);
+          timer = null;
+        }
+      },
+      { passive: true }
+    );
 
     document.addEventListener("pointerup", function () {
       clearTimeout(timer);

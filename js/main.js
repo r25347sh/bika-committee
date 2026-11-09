@@ -1,28 +1,23 @@
 /**
- * 美化委員会 — theme toggle + dust + reveal
+ * 美化委員会 — theme + visible dust + grain + reveal
  */
 (function () {
   "use strict";
-
   var THEME_KEY = "bika-theme";
 
   function getPreferredTheme() {
     try {
-      var saved = localStorage.getItem(THEME_KEY);
-      if (saved === "light" || saved === "dark") return saved;
+      var s = localStorage.getItem(THEME_KEY);
+      if (s === "light" || s === "dark") return s;
     } catch (e) {}
     return "light";
   }
 
   function applyTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
-    try {
-      localStorage.setItem(THEME_KEY, theme);
-    } catch (e) {}
-    var btn = document.querySelector(".theme-toggle");
-    if (btn) {
-      btn.setAttribute("aria-label", theme === "dark" ? "ライトモードに切替" : "ダークモードに切替");
-    }
+    try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = theme === "dark" ? "#0b0f14" : "#f3f1eb";
   }
 
   function initTheme() {
@@ -36,8 +31,7 @@
       document.body.appendChild(btn);
     }
     btn.addEventListener("click", function () {
-      var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
-      applyTheme(next);
+      applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark");
     });
   }
 
@@ -46,74 +40,77 @@
     if (!canvas) return;
     var ctx = canvas.getContext("2d");
     var particles = [];
-    var W, H;
-    var mouse = { x: -9999, y: -9999 };
+    var W, H, mouse = { x: -9999, y: -9999 };
     var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     function resize() {
       W = canvas.width = window.innerWidth;
       H = canvas.height = window.innerHeight;
     }
-
     function isDark() {
       return document.documentElement.getAttribute("data-theme") === "dark";
     }
-
     function spawn(n) {
       for (var i = 0; i < n; i++) {
         particles.push({
           x: Math.random() * W,
           y: Math.random() * H,
-          r: 0.5 + Math.random() * 1.8,
-          vx: (Math.random() - 0.5) * 0.28,
-          vy: -0.06 - Math.random() * 0.24,
-          a: 0.12 + Math.random() * 0.32,
-          life: 0.55 + Math.random() * 0.45
+          r: 1.2 + Math.random() * 2.8,
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: -0.12 - Math.random() * 0.35,
+          a: 0.35 + Math.random() * 0.45,
+          life: 0.7 + Math.random() * 0.5,
+          pulse: Math.random() * Math.PI * 2
         });
       }
     }
-
     function tick() {
       if (reduced) return;
       ctx.clearRect(0, 0, W, H);
       var dark = isDark();
+      var t = performance.now() * 0.001;
       for (var i = particles.length - 1; i >= 0; i--) {
         var p = particles[i];
-        var dx = mouse.x - p.x;
-        var dy = mouse.y - p.y;
+        var dx = mouse.x - p.x, dy = mouse.y - p.y;
         var dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 100 && dist > 0.1) {
-          var force = (100 - dist) / 100;
-          p.vx += (dx / dist) * 0.045 * force;
-          p.vy += (dy / dist) * 0.045 * force;
-          p.a *= 0.96;
-          p.life -= 0.01 * force;
+        if (dist < 140 && dist > 0.1) {
+          var f = (140 - dist) / 140;
+          p.vx += (dx / dist) * 0.07 * f;
+          p.vy += (dy / dist) * 0.07 * f;
+          p.life -= 0.012 * f;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r * 3, 0, Math.PI * 2);
+          ctx.fillStyle = dark
+            ? "rgba(45,212,191," + (0.06 * f) + ")"
+            : "rgba(13,148,136," + (0.08 * f) + ")";
+          ctx.fill();
         }
         p.x += p.vx;
         p.y += p.vy;
-        p.vx *= 0.994;
-        p.vy *= 0.994;
-        p.life -= 0.0007;
-        if (p.y < -10 || p.life <= 0 || p.a < 0.02) {
+        p.vx *= 0.99;
+        p.vy *= 0.99;
+        p.life -= 0.0008;
+        p.pulse += 0.04;
+        if (p.y < -15 || p.life <= 0) {
           particles.splice(i, 1);
           continue;
         }
+        var blink = 0.7 + 0.3 * Math.sin(p.pulse + t);
+        var alpha = p.a * p.life * blink * (dark ? 0.75 : 0.55);
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        var alpha = p.a * p.life * (dark ? 0.55 : 0.4);
         if (dark) {
-          ctx.fillStyle = "rgba(45, 212, 191, " + alpha + ")";
+          ctx.fillStyle = "rgba(94, 234, 212, " + alpha + ")";
         } else {
-          ctx.fillStyle = "rgba(13, 148, 136, " + alpha + ")";
+          ctx.fillStyle = "rgba(15, 118, 110, " + alpha + ")";
         }
         ctx.fill();
       }
-      if (particles.length < 55) spawn(2);
+      if (particles.length < 90) spawn(4);
       requestAnimationFrame(tick);
     }
-
     resize();
-    spawn(50);
+    spawn(80);
     window.addEventListener("resize", resize);
     window.addEventListener("pointermove", function (e) {
       mouse.x = e.clientX;
@@ -133,17 +130,14 @@
       els.forEach(function (el) { el.classList.add("visible"); });
       return;
     }
-    var io = new IntersectionObserver(
-      function (entries) {
-        entries.forEach(function (entry) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("visible");
-            io.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.1, rootMargin: "0px 0px -40px 0px" }
-    );
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          e.target.classList.add("visible");
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.08, rootMargin: "0px 0px -36px 0px" });
     els.forEach(function (el) { io.observe(el); });
   }
 
@@ -152,10 +146,7 @@
     initDust();
     initReveal();
   }
-
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
-  } else {
-    init();
-  }
+  } else init();
 })();

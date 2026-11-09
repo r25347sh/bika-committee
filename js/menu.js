@@ -1,124 +1,116 @@
 /**
- * 美化委員会 — Radial Menu + Hamburger FAB
- * Viewport-fixed positioning (clientX/Y + position:fixed on body children)
+ * 美化委員会 — Radial Menu + Hamburger FAB (fixed)
  */
 (function () {
   "use strict";
 
   function buildMenuData() {
     return [
-      { label: "INDEX", icon: "⌂", url: "index.html" },
-      { label: "幹部", icon: "👥", url: "cadre.html" },
-      { label: "業務内容", icon: "🧹", url: "activities.html" },
-      { label: "改革計画", icon: "🚀", url: "https://r25347sh.github.io/bika-reform/" }
+      { label: "INDEX", icon: "\u2302", url: "index.html" },
+      { label: "\u5e79\u90e8", icon: "\ud83d\udc65", url: "cadre.html" },
+      { label: "\u696d\u52d9\u5185\u5bb9", icon: "\ud83e\uddf9", url: "activities.html" },
+      { label: "\u6539\u9769\u8a08\u753b", icon: "\ud83d\ude80", url: "https://r25347sh.github.io/bika-reform/" }
     ];
   }
 
-  var LONG_PRESS_MS = 360;
-  var TRIPLE_TAP_DELAY_MS = 300;
-  var MOVE_THRESHOLD = 8;
-  var SHELL_CAPACITIES = [6, 10, 14];
-  var SHELL_RADII = [118, 190, 262];
+  var LONG_PRESS_MS = 420;
+  var TRIPLE_TAP_DELAY_MS = 380;
+  var MOVE_THRESHOLD = 12;
+  var SHELL_RADII = [110];
   var menuEl, itemsContainer, orbitsContainer, coreBtn;
-  var timer, startX, startY, isOpen = false, menuStack = [];
+  var timer = null, startX = 0, startY = 0;
+  var isOpen = false, menuStack = [];
   var pieDisabled = false;
   var tapCount = 0, tapTimer = null;
+  var ignoreOutsideUntil = 0;
 
   function navigateWithDelay(url) {
     closeMenu();
     closeHamburger();
-    setTimeout(function () {
-      location.href = url;
-    }, 180);
+    setTimeout(function () { location.href = url; }, 160);
   }
 
   function calculateShellLayout(items) {
-    var layout = [], remaining = items.length, itemIdx = 0;
-    for (var sIdx = 0; sIdx < SHELL_CAPACITIES.length && remaining > 0; sIdx++) {
-      var count = Math.min(remaining, SHELL_CAPACITIES[sIdx]);
-      var radius = SHELL_RADII[sIdx];
-      for (var i = 0; i < count; i++) {
-        var angle = (i / count) * 2 * Math.PI - Math.PI / 2;
-        layout.push({
-          item: items[itemIdx],
-          x: Math.round(Math.cos(angle) * radius),
-          y: Math.round(Math.sin(angle) * radius),
-          shellIndex: sIdx
-        });
-        itemIdx++;
-      }
-      remaining -= count;
+    var n = items.length;
+    var radius = SHELL_RADII[0];
+    var layout = [];
+    for (var i = 0; i < n; i++) {
+      var angle = (i / n) * 2 * Math.PI - Math.PI / 2;
+      layout.push({
+        item: items[i],
+        x: Math.round(Math.cos(angle) * radius),
+        y: Math.round(Math.sin(angle) * radius)
+      });
     }
     return layout;
   }
 
   function renderItems(items) {
     if (!itemsContainer || !orbitsContainer) return;
-    var old = itemsContainer.querySelectorAll(".rm-item");
-    for (var i = 0; i < old.length; i++) {
-      old[i].classList.remove("rendered");
-      old[i].remove();
-    }
+    itemsContainer.innerHTML = "";
     orbitsContainer.innerHTML = "";
 
     var layout = calculateShellLayout(items);
-    var shellsUsed = {};
+    var radius = SHELL_RADII[0];
+
+    var orbit = document.createElement("div");
+    orbit.className = "rm-shell-orbit";
+    orbit.style.width = radius * 2 + "px";
+    orbit.style.height = radius * 2 + "px";
+    orbit.style.left = -radius + "px";
+    orbit.style.top = -radius + "px";
+    orbitsContainer.appendChild(orbit);
+
     layout.forEach(function (data, idx) {
-      shellsUsed[data.shellIndex] = true;
       var btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "rm-item" + (data.item.items ? " has-sub" : "");
+      btn.className = "rm-item";
       btn.setAttribute("data-label", data.item.label || "");
       btn.style.setProperty("--x", data.x + "px");
       btn.style.setProperty("--y", data.y + "px");
-      btn.style.transitionDelay = idx * 32 + "ms";
-      btn.innerHTML = "<span>" + (data.item.icon || "·") + "</span>";
+      btn.style.transitionDelay = idx * 40 + "ms";
+      btn.innerHTML = "<span>" + (data.item.icon || "\u00b7") + "</span>";
       btn.addEventListener("click", function (e) {
+        e.preventDefault();
         e.stopPropagation();
-        if (data.item.items && data.item.items.length) {
-          menuStack.push(items);
-          renderItems(data.item.items);
-          if (coreBtn) coreBtn.classList.add("visible");
-        } else if (data.item.url) {
-          navigateWithDelay(data.item.url);
-        }
+        if (data.item.url) navigateWithDelay(data.item.url);
       });
       itemsContainer.appendChild(btn);
       requestAnimationFrame(function () {
-        requestAnimationFrame(function () {
-          btn.classList.add("rendered");
-        });
+        requestAnimationFrame(function () { btn.classList.add("rendered"); });
       });
-    });
-
-    Object.keys(shellsUsed).forEach(function (sIdx) {
-      var r = SHELL_RADII[parseInt(sIdx, 10)];
-      var orbit = document.createElement("div");
-      orbit.className = "rm-shell-orbit";
-      orbit.style.width = r * 2 + "px";
-      orbit.style.height = r * 2 + "px";
-      orbit.style.marginLeft = -r + "px";
-      orbit.style.marginTop = -r + "px";
-      orbitsContainer.appendChild(orbit);
     });
   }
 
   function openMenu(x, y) {
-    if (pieDisabled || isOpen) return;
+    if (pieDisabled) return;
+    if (isOpen) {
+      closeMenu();
+      return;
+    }
     isOpen = true;
+    ignoreOutsideUntil = Date.now() + 450;
     menuStack = [];
     if (!menuEl) createMenuDOM();
     menuEl.style.left = x + "px";
     menuEl.style.top = y + "px";
     menuEl.classList.add("active");
-    if (coreBtn) coreBtn.classList.remove("visible");
+    menuEl.setAttribute("aria-hidden", "false");
+    if (coreBtn) {
+      coreBtn.classList.add("visible");
+      coreBtn.textContent = "\u2715";
+      coreBtn.setAttribute("aria-label", "\u9589\u3058\u308b");
+    }
     renderItems(buildMenuData());
   }
 
   function closeMenu() {
     if (!isOpen) return;
     isOpen = false;
-    if (menuEl) menuEl.classList.remove("active");
+    if (menuEl) {
+      menuEl.classList.remove("active");
+      menuEl.setAttribute("aria-hidden", "true");
+    }
     if (itemsContainer) {
       var nodes = itemsContainer.querySelectorAll(".rm-item");
       for (var i = 0; i < nodes.length; i++) nodes[i].classList.remove("rendered");
@@ -137,16 +129,12 @@
     coreBtn = document.createElement("button");
     coreBtn.type = "button";
     coreBtn.className = "rm-core-btn";
-    coreBtn.setAttribute("aria-label", "戻る");
-    coreBtn.textContent = "↩";
+    coreBtn.setAttribute("aria-label", "\u9589\u3058\u308b");
+    coreBtn.textContent = "\u2715";
     coreBtn.addEventListener("click", function (e) {
+      e.preventDefault();
       e.stopPropagation();
-      if (menuStack.length) {
-        renderItems(menuStack.pop());
-        if (!menuStack.length) coreBtn.classList.remove("visible");
-      } else {
-        closeMenu();
-      }
+      closeMenu();
     });
     menuEl.appendChild(orbitsContainer);
     menuEl.appendChild(itemsContainer);
@@ -154,66 +142,92 @@
     document.body.appendChild(menuEl);
   }
 
+  function isUITarget(t) {
+    if (!t || !t.closest) return false;
+    return !!t.closest(
+      ".ham-fab, .ham-panel, .radial-menu-wrapper, .rm-item, .rm-core-btn, .menu-fab, #ham-panel, #ham-overlay, a, button, input, textarea, select, .site-portal, .theme-toggle, .nav-toggle"
+    );
+  }
+
   function onPointerDown(e) {
     if (e.button !== undefined && e.button !== 0) return;
-    if (e.target.closest && (e.target.closest(".ham-fab, .ham-panel, .radial-menu-wrapper, a, button, input, textarea, select"))) return;
+    if (isUITarget(e.target)) return;
     startX = e.clientX;
     startY = e.clientY;
+    if (isOpen) return;
     clearTimeout(timer);
     timer = setTimeout(function () {
+      timer = null;
+      if (pieDisabled) return;
       openMenu(startX, startY);
     }, LONG_PRESS_MS);
   }
 
   function onPointerMove(e) {
     if (!timer) return;
-    var dx = Math.abs(e.clientX - startX);
-    var dy = Math.abs(e.clientY - startY);
-    if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
+    var dx = e.clientX - startX;
+    var dy = e.clientY - startY;
+    if (Math.sqrt(dx * dx + dy * dy) > MOVE_THRESHOLD) {
       clearTimeout(timer);
       timer = null;
     }
   }
 
   function onPointerUp() {
-    clearTimeout(timer);
-    timer = null;
-  }
-
-  function onTripleTap(e) {
-    if (e.target.closest && e.target.closest(".ham-fab, .ham-panel, .radial-menu-wrapper, a, button")) return;
-    tapCount++;
-    clearTimeout(tapTimer);
-    if (tapCount >= 3) {
-      tapCount = 0;
-      openMenu(e.clientX, e.clientY);
-      return;
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
     }
-    tapTimer = setTimeout(function () { tapCount = 0; }, TRIPLE_TAP_DELAY_MS);
   }
 
-  /* Hamburger */
+  function onClick(e) {
+    if (!isUITarget(e.target) && !isOpen) {
+      tapCount++;
+      clearTimeout(tapTimer);
+      if (tapCount >= 3) {
+        tapCount = 0;
+        openMenu(e.clientX, e.clientY);
+        return;
+      }
+      tapTimer = setTimeout(function () { tapCount = 0; }, TRIPLE_TAP_DELAY_MS);
+    }
+
+    if (isOpen && Date.now() > ignoreOutsideUntil) {
+      if (menuEl && !menuEl.contains(e.target)) closeMenu();
+    }
+
+    if (hamOpen && hamPanel && hamFab) {
+      if (!hamPanel.contains(e.target) && e.target !== hamFab && !hamFab.contains(e.target)) {
+        closeHamburger();
+      }
+    }
+  }
+
   var hamFab, hamPanel, hamOpen = false;
 
   function closeHamburger() {
     hamOpen = false;
     if (hamFab) hamFab.classList.remove("open");
     if (hamPanel) hamPanel.classList.remove("open");
+    pieDisabled = false;
   }
 
   function toggleHamburger() {
     hamOpen = !hamOpen;
     if (hamFab) hamFab.classList.toggle("open", hamOpen);
     if (hamPanel) hamPanel.classList.toggle("open", hamOpen);
+    pieDisabled = hamOpen;
+    if (hamOpen) closeMenu();
   }
 
   function buildHamburger() {
     hamFab = document.createElement("button");
     hamFab.type = "button";
     hamFab.className = "ham-fab";
-    hamFab.setAttribute("aria-label", "メニュー");
-    hamFab.innerHTML = "☰";
+    hamFab.setAttribute("aria-label", "\u30e1\u30cb\u30e5\u30fc");
+    hamFab.innerHTML = "<span class=\"ham-fab-icon\">\u2630</span>";
     hamFab.addEventListener("click", function (e) {
+      e.preventDefault();
       e.stopPropagation();
       toggleHamburger();
     });
@@ -226,9 +240,18 @@
       var a = document.createElement("a");
       a.href = entry.url;
       a.className = "ham-link";
-      a.innerHTML = '<span class="ham-icon">' + (entry.icon || "·") + "</span><span>" + entry.label + "</span>";
+      a.setAttribute("role", "menuitem");
+      a.innerHTML =
+        '<span class="ham-icon">' +
+        (entry.icon || "\u00b7") +
+        "</span><span>" +
+        entry.label +
+        "</span>";
       a.addEventListener("click", function (e) {
-        if (entry.url.indexOf("http") === 0) return;
+        if (entry.url.indexOf("http") === 0) {
+          closeHamburger();
+          return;
+        }
         e.preventDefault();
         navigateWithDelay(entry.url);
       });
@@ -239,19 +262,11 @@
     document.body.appendChild(hamFab);
   }
 
-  document.addEventListener("mousedown", onPointerDown);
-  document.addEventListener("mousemove", onPointerMove);
-  document.addEventListener("mouseup", onPointerUp);
-  document.addEventListener("touchstart", function (e) {
-    if (e.touches.length !== 1) return;
-    onPointerDown(e.touches[0]);
-  }, { passive: true });
-  document.addEventListener("touchmove", function (e) {
-    if (e.touches.length !== 1) return;
-    onPointerMove(e.touches[0]);
-  }, { passive: true });
-  document.addEventListener("touchend", onPointerUp);
-  document.addEventListener("click", onTripleTap);
+  document.addEventListener("pointerdown", onPointerDown, { passive: true });
+  document.addEventListener("pointermove", onPointerMove, { passive: true });
+  document.addEventListener("pointerup", onPointerUp, { passive: true });
+  document.addEventListener("pointercancel", onPointerUp, { passive: true });
+  document.addEventListener("click", onClick);
 
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape") {
@@ -260,14 +275,13 @@
     }
   });
 
-  document.addEventListener("click", function (e) {
-    if (isOpen && menuEl && !menuEl.contains(e.target)) closeMenu();
-    if (hamOpen && hamPanel && !hamPanel.contains(e.target) && e.target !== hamFab) closeHamburger();
-  });
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", buildHamburger);
-  } else {
+  function init() {
+    createMenuDOM();
     buildHamburger();
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
   }
 })();

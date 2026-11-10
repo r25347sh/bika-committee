@@ -1,5 +1,5 @@
 /**
- * 美化委員会 — Radial Menu + Hamburger FAB (fixed)
+ * 美化委員会 — Radial Menu + Hamburger FAB (juicy anim)
  */
 (function () {
   "use strict";
@@ -49,10 +49,8 @@
     if (!itemsContainer || !orbitsContainer) return;
     itemsContainer.innerHTML = "";
     orbitsContainer.innerHTML = "";
-
     var layout = calculateShellLayout(items);
     var radius = SHELL_RADII[0];
-
     var orbit = document.createElement("div");
     orbit.className = "rm-shell-orbit";
     orbit.style.width = radius * 2 + "px";
@@ -60,7 +58,6 @@
     orbit.style.left = -radius + "px";
     orbit.style.top = -radius + "px";
     orbitsContainer.appendChild(orbit);
-
     layout.forEach(function (data, idx) {
       var btn = document.createElement("button");
       btn.type = "button";
@@ -68,7 +65,7 @@
       btn.setAttribute("data-label", data.item.label || "");
       btn.style.setProperty("--x", data.x + "px");
       btn.style.setProperty("--y", data.y + "px");
-      btn.style.transitionDelay = idx * 40 + "ms";
+      btn.style.transitionDelay = (40 + idx * 55) + "ms";
       btn.innerHTML = "<span>" + (data.item.icon || "\u00b7") + "</span>";
       btn.addEventListener("click", function (e) {
         e.preventDefault();
@@ -84,16 +81,15 @@
 
   function openMenu(x, y) {
     if (pieDisabled) return;
-    if (isOpen) {
-      closeMenu();
-      return;
-    }
+    if (isOpen) { closeMenu(); return; }
     isOpen = true;
     ignoreOutsideUntil = Date.now() + 450;
     menuStack = [];
     if (!menuEl) createMenuDOM();
     menuEl.style.left = x + "px";
     menuEl.style.top = y + "px";
+    menuEl.classList.remove("active");
+    void menuEl.offsetWidth;
     menuEl.classList.add("active");
     menuEl.setAttribute("aria-hidden", "false");
     if (coreBtn) {
@@ -107,15 +103,22 @@
   function closeMenu() {
     if (!isOpen) return;
     isOpen = false;
-    if (menuEl) {
-      menuEl.classList.remove("active");
-      menuEl.setAttribute("aria-hidden", "true");
-    }
     if (itemsContainer) {
       var nodes = itemsContainer.querySelectorAll(".rm-item");
-      for (var i = 0; i < nodes.length; i++) nodes[i].classList.remove("rendered");
+      for (var i = 0; i < nodes.length; i++) {
+        nodes[i].style.transitionDelay = (nodes.length - 1 - i) * 35 + "ms";
+        nodes[i].classList.remove("rendered");
+      }
     }
     if (coreBtn) coreBtn.classList.remove("visible");
+    if (menuEl) {
+      setTimeout(function () {
+        if (!isOpen && menuEl) {
+          menuEl.classList.remove("active");
+          menuEl.setAttribute("aria-hidden", "true");
+        }
+      }, 420);
+    }
   }
 
   function createMenuDOM() {
@@ -136,6 +139,9 @@
       e.stopPropagation();
       closeMenu();
     });
+    var blast = document.createElement("div");
+    blast.className = "rm-blast";
+    menuEl.appendChild(blast);
     menuEl.appendChild(orbitsContainer);
     menuEl.appendChild(itemsContainer);
     menuEl.appendChild(coreBtn);
@@ -165,19 +171,14 @@
 
   function onPointerMove(e) {
     if (!timer) return;
-    var dx = e.clientX - startX;
-    var dy = e.clientY - startY;
+    var dx = e.clientX - startX, dy = e.clientY - startY;
     if (Math.sqrt(dx * dx + dy * dy) > MOVE_THRESHOLD) {
-      clearTimeout(timer);
-      timer = null;
+      clearTimeout(timer); timer = null;
     }
   }
 
   function onPointerUp() {
-    if (timer) {
-      clearTimeout(timer);
-      timer = null;
-    }
+    if (timer) { clearTimeout(timer); timer = null; }
   }
 
   function onClick(e) {
@@ -191,15 +192,11 @@
       }
       tapTimer = setTimeout(function () { tapCount = 0; }, TRIPLE_TAP_DELAY_MS);
     }
-
     if (isOpen && Date.now() > ignoreOutsideUntil) {
       if (menuEl && !menuEl.contains(e.target)) closeMenu();
     }
-
     if (hamOpen && hamPanel && hamFab) {
-      if (!hamPanel.contains(e.target) && e.target !== hamFab && !hamFab.contains(e.target)) {
-        closeHamburger();
-      }
+      if (!hamPanel.contains(e.target) && e.target !== hamFab && !hamFab.contains(e.target)) closeHamburger();
     }
   }
 
@@ -231,33 +228,22 @@
       e.stopPropagation();
       toggleHamburger();
     });
-
     hamPanel = document.createElement("div");
     hamPanel.className = "ham-panel";
     hamPanel.setAttribute("role", "menu");
-
     buildMenuData().forEach(function (entry) {
       var a = document.createElement("a");
       a.href = entry.url;
       a.className = "ham-link";
       a.setAttribute("role", "menuitem");
-      a.innerHTML =
-        '<span class="ham-icon">' +
-        (entry.icon || "\u00b7") +
-        "</span><span>" +
-        entry.label +
-        "</span>";
+      a.innerHTML = '<span class="ham-icon">' + (entry.icon || "\u00b7") + "</span><span>" + entry.label + "</span>";
       a.addEventListener("click", function (e) {
-        if (entry.url.indexOf("http") === 0) {
-          closeHamburger();
-          return;
-        }
+        if (entry.url.indexOf("http") === 0) { closeHamburger(); return; }
         e.preventDefault();
         navigateWithDelay(entry.url);
       });
       hamPanel.appendChild(a);
     });
-
     document.body.appendChild(hamPanel);
     document.body.appendChild(hamFab);
   }
@@ -267,21 +253,11 @@
   document.addEventListener("pointerup", onPointerUp, { passive: true });
   document.addEventListener("pointercancel", onPointerUp, { passive: true });
   document.addEventListener("click", onClick);
-
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") {
-      closeMenu();
-      closeHamburger();
-    }
+    if (e.key === "Escape") { closeMenu(); closeHamburger(); }
   });
 
-  function init() {
-    createMenuDOM();
-    buildHamburger();
-  }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
-  } else {
-    init();
-  }
+  function init() { createMenuDOM(); buildHamburger(); }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
 })();

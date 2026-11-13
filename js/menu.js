@@ -1,15 +1,16 @@
 /**
- * 美化委員会 — Radial Menu (gesture-safe + theatrical open)
+ * 美化委員会 — Radial Menu + FAB hamburger
+ * FAB/panel can exist in HTML (preferred) or are created here.
  */
 (function () {
   "use strict";
 
   function buildMenuData() {
     return [
-      { label: "INDEX", icon: "\u2302", url: "index.html" },
-      { label: "\u5e79\u90e8", icon: "\ud83d\udc65", url: "cadre.html" },
-      { label: "\u696d\u52d9\u5185\u5bb9", icon: "\ud83e\uddf9", url: "activities.html" },
-      { label: "\u6539\u9769\u8a08\u753b", icon: "\ud83d\ude80", url: "https://r25347sh.github.io/bika-reform/" }
+      { label: "INDEX", icon: "⌂", url: "index.html" },
+      { label: "幹部", icon: "👥", url: "cadre.html" },
+      { label: "業務内容", icon: "🧹", url: "activities.html" },
+      { label: "改革計画", icon: "🚀", url: "https://r25347sh.github.io/bika-reform/" }
     ];
   }
 
@@ -17,6 +18,7 @@
   var TRIPLE_TAP_DELAY_MS = 400;
   var MOVE_THRESHOLD = 14;
   var RADIUS = 120;
+
   var menuEl, itemsContainer, orbitsContainer, coreBtn, fxLayer;
   var timer = null, startX = 0, startY = 0;
   var isOpen = false;
@@ -26,11 +28,14 @@
   var blockOutsideTimer = null;
   var pointerIsDown = false;
   var openedWhilePointerDown = false;
+  var hamFab, hamPanel, hamOpen = false;
 
   function navigateWithDelay(url) {
     closeMenu();
     closeHamburger();
-    setTimeout(function () { location.href = url; }, 180);
+    setTimeout(function () {
+      location.href = url;
+    }, 180);
   }
 
   function layoutItems(n) {
@@ -49,7 +54,7 @@
   function spawnSparks() {
     if (!fxLayer) return;
     fxLayer.innerHTML = "";
-    var glyphs = ["\u2726", "\u2727", "\u00b7", "\u2217", "\u22c6"];
+    var glyphs = ["✦", "✧", "·", "∗", "⋆"];
     for (var i = 0; i < 14; i++) {
       var s = document.createElement("span");
       s.className = "rm-spark";
@@ -88,7 +93,7 @@
       btn.style.setProperty("--y", pos[idx].y + "px");
       btn.style.setProperty("--i", String(idx));
       btn.style.transitionDelay = 60 + idx * 70 + "ms";
-      btn.innerHTML = "<span>" + (item.icon || "\u00b7") + "</span>";
+      btn.innerHTML = "<span>" + (item.icon || "·") + "</span>";
       btn.addEventListener("click", function (e) {
         e.preventDefault();
         e.stopPropagation();
@@ -96,7 +101,9 @@
       });
       itemsContainer.appendChild(btn);
       requestAnimationFrame(function () {
-        requestAnimationFrame(function () { btn.classList.add("rendered"); });
+        requestAnimationFrame(function () {
+          btn.classList.add("rendered");
+        });
       });
     });
   }
@@ -133,7 +140,7 @@
     spawnSparks();
     if (coreBtn) {
       coreBtn.classList.add("visible");
-      coreBtn.textContent = "\u2715";
+      coreBtn.textContent = "✕";
     }
     renderItems(buildMenuData());
   }
@@ -164,8 +171,10 @@
   }
 
   function createMenuDOM() {
+    if (menuEl && document.body.contains(menuEl)) return;
     menuEl = document.createElement("div");
     menuEl.className = "radial-menu-wrapper";
+    menuEl.id = "radial-menu";
     menuEl.setAttribute("aria-hidden", "true");
     fxLayer = document.createElement("div");
     fxLayer.className = "rm-fx";
@@ -176,7 +185,7 @@
     coreBtn = document.createElement("button");
     coreBtn.type = "button";
     coreBtn.className = "rm-core-btn";
-    coreBtn.textContent = "\u2715";
+    coreBtn.textContent = "✕";
     coreBtn.addEventListener("click", function (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -198,7 +207,7 @@
   function isUITarget(t) {
     if (!t || !t.closest) return false;
     return !!t.closest(
-      ".ham-fab, .ham-panel, .radial-menu-wrapper, .rm-item, .rm-core-btn, a, button, input, textarea, select, .site-portal, .theme-toggle, .nav-toggle"
+      ".ham-fab, .ham-panel, .radial-menu-wrapper, .rm-item, .rm-core-btn, a, button, input, textarea, select, .site-portal, .theme-toggle, .nav-toggle, #sp-edge-frame, #sp-menu-panel, #sp-menu-backdrop, #site-password-overlay"
     );
   }
 
@@ -219,7 +228,8 @@
 
   function onPointerMove(e) {
     if (!timer) return;
-    var dx = e.clientX - startX, dy = e.clientY - startY;
+    var dx = e.clientX - startX,
+      dy = e.clientY - startY;
     if (Math.sqrt(dx * dx + dy * dy) > MOVE_THRESHOLD) {
       clearTimeout(timer);
       timer = null;
@@ -247,7 +257,9 @@
           tapCount = 0;
           openMenu(e.clientX, e.clientY, false);
         } else {
-          tapTimer = setTimeout(function () { tapCount = 0; }, TRIPLE_TAP_DELAY_MS);
+          tapTimer = setTimeout(function () {
+            tapCount = 0;
+          }, TRIPLE_TAP_DELAY_MS);
         }
       }
       return;
@@ -261,7 +273,9 @@
         openMenu(e.clientX, e.clientY, false);
         return;
       }
-      tapTimer = setTimeout(function () { tapCount = 0; }, TRIPLE_TAP_DELAY_MS);
+      tapTimer = setTimeout(function () {
+        tapCount = 0;
+      }, TRIPLE_TAP_DELAY_MS);
     }
 
     if (isOpen && menuEl && !menuEl.contains(e.target)) {
@@ -274,48 +288,96 @@
     }
   }
 
-  var hamFab, hamPanel, hamOpen = false;
-
   function closeHamburger() {
     hamOpen = false;
-    if (hamFab) hamFab.classList.remove("open");
-    if (hamPanel) hamPanel.classList.remove("open");
+    if (hamFab) {
+      hamFab.classList.remove("open");
+      hamFab.setAttribute("aria-expanded", "false");
+    }
+    if (hamPanel) {
+      hamPanel.classList.remove("open");
+      hamPanel.setAttribute("aria-hidden", "true");
+    }
     pieDisabled = false;
   }
+
   function toggleHamburger() {
     hamOpen = !hamOpen;
-    if (hamFab) hamFab.classList.toggle("open", hamOpen);
-    if (hamPanel) hamPanel.classList.toggle("open", hamOpen);
+    if (hamFab) {
+      hamFab.classList.toggle("open", hamOpen);
+      hamFab.setAttribute("aria-expanded", hamOpen ? "true" : "false");
+    }
+    if (hamPanel) {
+      hamPanel.classList.toggle("open", hamOpen);
+      hamPanel.setAttribute("aria-hidden", hamOpen ? "false" : "true");
+    }
     pieDisabled = hamOpen;
     if (hamOpen) closeMenu();
   }
-  function buildHamburger() {
-    hamFab = document.createElement("button");
-    hamFab.type = "button";
-    hamFab.className = "ham-fab";
-    hamFab.setAttribute("aria-label", "\u30e1\u30cb\u30e5\u30fc");
-    hamFab.innerHTML = '<span class="ham-fab-icon">\u2630</span>';
-    hamFab.addEventListener("click", function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      toggleHamburger();
-    });
-    hamPanel = document.createElement("div");
-    hamPanel.className = "ham-panel";
+
+  function fillPanelLinks(panel) {
+    if (!panel) return;
+    if (panel.querySelector(".ham-link")) return;
     buildMenuData().forEach(function (entry) {
       var a = document.createElement("a");
       a.href = entry.url;
       a.className = "ham-link";
-      a.innerHTML = '<span class="ham-icon">' + (entry.icon || "\u00b7") + "</span><span>" + entry.label + "</span>";
+      a.innerHTML =
+        '<span class="ham-icon">' +
+        (entry.icon || "·") +
+        "</span><span>" +
+        entry.label +
+        "</span>";
       a.addEventListener("click", function (e) {
-        if (entry.url.indexOf("http") === 0) { closeHamburger(); return; }
+        if (entry.url.indexOf("http") === 0) {
+          closeHamburger();
+          return;
+        }
         e.preventDefault();
         navigateWithDelay(entry.url);
       });
-      hamPanel.appendChild(a);
+      panel.appendChild(a);
     });
-    document.body.appendChild(hamPanel);
-    document.body.appendChild(hamFab);
+  }
+
+  function ensureHamburger() {
+    hamFab = document.getElementById("ham-fab") || document.querySelector(".ham-fab");
+    hamPanel = document.getElementById("ham-panel") || document.querySelector(".ham-panel");
+
+    if (!hamFab) {
+      hamFab = document.createElement("button");
+      hamFab.type = "button";
+      hamFab.className = "ham-fab";
+      hamFab.id = "ham-fab";
+      hamFab.setAttribute("aria-label", "メニュー");
+      hamFab.setAttribute("aria-expanded", "false");
+      hamFab.setAttribute("aria-controls", "ham-panel");
+      hamFab.innerHTML = '<span class="ham-fab-icon" aria-hidden="true">☰</span>';
+      document.body.appendChild(hamFab);
+    }
+
+    if (!hamPanel) {
+      hamPanel = document.createElement("nav");
+      hamPanel.className = "ham-panel";
+      hamPanel.id = "ham-panel";
+      hamPanel.setAttribute("aria-hidden", "true");
+      document.body.appendChild(hamPanel);
+    }
+
+    fillPanelLinks(hamPanel);
+
+    if (!hamFab.dataset.bound) {
+      hamFab.dataset.bound = "1";
+      hamFab.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleHamburger();
+      });
+    }
+
+    hamFab.style.visibility = "visible";
+    hamFab.style.opacity = "1";
+    if (!hamFab.style.position) hamFab.style.position = "fixed";
   }
 
   document.addEventListener("pointerdown", onPointerDown, { passive: true });
@@ -325,13 +387,25 @@
   document.addEventListener("click", onClick, true);
 
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") { closeMenu(); closeHamburger(); }
+    if (e.key === "Escape") {
+      closeMenu();
+      closeHamburger();
+    }
   });
 
   function init() {
-    createMenuDOM();
-    buildHamburger();
+    try {
+      createMenuDOM();
+      ensureHamburger();
+      console.info("[bika-menu] ready — FAB + radial");
+    } catch (err) {
+      console.error("[bika-menu] init failed", err);
+      try {
+        ensureHamburger();
+      } catch (e2) {}
+    }
   }
+
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
 })();

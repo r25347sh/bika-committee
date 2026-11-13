@@ -181,3 +181,25 @@
     animation: none !important; transition-duration: 0.01ms !important;
   }
 }
+
+/* ===== Reliability layer: FAB always visible even if cascade breaks ===== */
+.ham-fab {
+  position: fixed !important;
+  bottom: max(1.2rem, env(safe-area-inset-bottom, 1.2rem)) !important;
+  right: max(1.2rem, env(safe-area-inset-right, 1.2rem)) !important;
+  z-index: 9999998 !important;
+  width: 58px !important;
+  height: 58px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+.ham-panel {
+  z-index: 9999997 !important;
+}
+.radial-menu-wrapper {
+  z-index: 9999999 !important;
+}

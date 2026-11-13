@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/play.css">
-  <link rel="stylesheet" href="css/menu.css">
+  <link rel="stylesheet" href="css/menu.css?v=menu2">
 </head>
 <body>
   <div class="ambient" aria-hidden="true">
@@ -113,9 +113,20 @@
     </footer>
   </div>
 
+  <!-- Site menu: visible without JS; JS enhances open/close + radial -->
+  <button type="button" class="ham-fab" id="ham-fab" aria-label="メニュー" aria-expanded="false" aria-controls="ham-panel">
+    <span class="ham-fab-icon" aria-hidden="true">☰</span>
+  </button>
+  <nav class="ham-panel" id="ham-panel" aria-hidden="true">
+    <a class="ham-link" href="index.html"><span class="ham-icon" aria-hidden="true">⌂</span><span>INDEX</span></a>
+    <a class="ham-link" href="cadre.html"><span class="ham-icon" aria-hidden="true">👥</span><span>幹部</span></a>
+    <a class="ham-link" href="activities.html"><span class="ham-icon" aria-hidden="true">🧹</span><span>業務内容</span></a>
+    <a class="ham-link" href="https://r25347sh.github.io/bika-reform/"><span class="ham-icon" aria-hidden="true">🚀</span><span>改革計画</span></a>
+  </nav>
+
   <script src="js/main.js" defer></script>
   <script src="js/play.js" defer></script>
-  <script src="js/menu.js" defer></script>
+  <script src="js/menu.js?v=menu2" defer></script>
   <a class="site-portal" href="https://r25347sh.github.io/bika-reform/" title="改革計画サイトへ">
     <span class="portal-icon" aria-hidden="true">🚀</span>
     <span>改革計画へ</span>

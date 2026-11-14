@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/play.css">
-  <link rel="stylesheet" href="css/menu.css">
+  <link rel="stylesheet" href="css/menu.css?v=menu2">
 </head>
 <body>
   <div class="ambient" aria-hidden="true">
@@ -37,17 +37,12 @@
       <div class="container">
         <div class="hero-badge">業務内容</div>
         <h1>業務内容</h1>
-        <p class="hero-sub">学習活動を整えるために、学校全体の美化に心がけて活動を行います。</p>
+        <p class="hero-sub">脱ハウスダストのための具体的な取り組みです。</p>
       </div>
     </header>
 
     <section class="section" style="padding-top: 0;">
       <div class="container">
-        <div class="section-header reveal">
-          <p class="eyebrow">What we do</p>
-          <h2>活動内容</h2>
-        </div>
-
         <div class="activity-grid" style="margin-bottom: 3rem;">
           <article class="card activity-card reveal reveal-delay-1">
             <div class="num">01</div>
@@ -81,9 +76,19 @@
     </footer>
   </div>
 
+  <button type="button" class="ham-fab" id="ham-fab" aria-label="メニュー" aria-expanded="false" aria-controls="ham-panel">
+    <span class="ham-fab-icon" aria-hidden="true">☰</span>
+  </button>
+  <nav class="ham-panel" id="ham-panel" aria-hidden="true">
+    <a class="ham-link" href="index.html"><span class="ham-icon" aria-hidden="true">⌂</span><span>INDEX</span></a>
+    <a class="ham-link" href="cadre.html"><span class="ham-icon" aria-hidden="true">👥</span><span>幹部</span></a>
+    <a class="ham-link" href="activities.html"><span class="ham-icon" aria-hidden="true">🧹</span><span>業務内容</span></a>
+    <a class="ham-link" href="https://r25347sh.github.io/bika-reform/"><span class="ham-icon" aria-hidden="true">🚀</span><span>改革計画</span></a>
+  </nav>
+
   <script src="js/main.js" defer></script>
   <script src="js/play.js" defer></script>
-  <script src="js/menu.js" defer></script>
+  <script src="js/menu.js?v=menu2" defer></script>
   <a class="site-portal" href="https://r25347sh.github.io/bika-reform/" title="改革計画サイトへ">
     <span class="portal-icon" aria-hidden="true">🚀</span>
     <span>改革計画へ</span>

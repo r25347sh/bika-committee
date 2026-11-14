@@ -182,24 +182,37 @@
   }
 }
 
-/* ===== Reliability layer: FAB always visible even if cascade breaks ===== */
-.ham-fab {
+/* === HARD FORCE visibility (page nav) === */
+.ham-fab,
+button.ham-fab,
+#ham-fab {
   position: fixed !important;
-  bottom: max(1.2rem, env(safe-area-inset-bottom, 1.2rem)) !important;
-  right: max(1.2rem, env(safe-area-inset-right, 1.2rem)) !important;
-  z-index: 9999998 !important;
+  right: max(1rem, env(safe-area-inset-right, 0px)) !important;
+  bottom: max(1rem, env(safe-area-inset-bottom, 0px)) !important;
   width: 58px !important;
   height: 58px !important;
+  z-index: 2147483645 !important;
   display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
   visibility: visible !important;
   opacity: 1 !important;
   pointer-events: auto !important;
+  background: #0a6b6e !important;
+  color: #fff !important;
+  border: 3px solid #1a1e1b !important;
+  border-radius: 50% !important;
+  box-shadow: 4px 4px 0 rgba(0,0,0,.25) !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 1.35rem !important;
+  cursor: pointer !important;
 }
-.ham-panel {
-  z-index: 9999997 !important;
+.ham-panel,
+#ham-panel {
+  position: fixed !important;
+  right: max(1rem, env(safe-area-inset-right, 0px)) !important;
+  bottom: calc(1rem + 68px + env(safe-area-inset-bottom, 0px)) !important;
+  z-index: 2147483644 !important;
 }
 .radial-menu-wrapper {
-  z-index: 9999999 !important;
+  z-index: 2147483646 !important;
 }

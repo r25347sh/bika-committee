@@ -375,9 +375,7 @@
       });
     }
 
-    hamFab.style.visibility = "visible";
-    hamFab.style.opacity = "1";
-    if (!hamFab.style.position) hamFab.style.position = "fixed";
+    hamFab.style.cssText = "position:fixed!important;right:max(1rem,env(safe-area-inset-right,0px))!important;bottom:max(1rem,env(safe-area-inset-bottom,0px))!important;width:58px!important;height:58px!important;z-index:2147483645!important;display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;background:#0a6b6e!important;color:#fff!important;border:3px solid #1a1e1b!important;border-radius:50%!important;align-items:center!important;justify-content:center!important;font-size:1.35rem!important;cursor:pointer!important;box-shadow:4px 4px 0 rgba(0,0,0,.25)!important;";
   }
 
   document.addEventListener("pointerdown", onPointerDown, { passive: true });
